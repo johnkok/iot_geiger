@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body {font-family: Arial;}
+
+/* Style the tab */
+.tab {
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background-color: #F55353;
+  font-size: 17px;
+}
+
+/* Style the buttons inside the tab */
+.tab button {
+  background-color: inherit;
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.3s;
+  font-size: 20px;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+  background-color: #C06060;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+  background-color: #B65757;
+}
+
+/* Style the tab content */
+.tabcontent {
+  display: none;
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-top: none;
+}
+</style>
+</head>
+<body>
+
+<h2>Radiation monitor</h2>
+
+<div class="tab">
+  <button class="tablinks" onclick="openMenu(event, 'Status')">Status</button>
+  <button class="tablinks" onclick="openMenu(event, 'Configuration')">Configuration</button>
+  <button class="tablinks" onclick="openMenu(event, 'Logout')">Logout</button>
+</div>
+
+<div id="Status" class="tabcontent">
+  <h3>Current status:</h3>
+  <p>London is the capital city of England.</p>
+</div>
+
+<div id="Configuration" class="tabcontent">
+   <h2>System configuration:</h2>
+
+   <h3>WiFi:</h3>
+   <table>
+   <tr>
+      <th><label for="ssid">SSID: </label></th>
+      <td><input type="text" name="inputString"></td>
+   </tr>
+   <tr>
+      <th><label for="wifi_password">Password: </label></th>
+      <td><input type="text" name="inputString"></td>
+   </tr>
+   </table> 
+   <input type="submit" value="Submit" onclick="submitWifiMessage()">
+   
+   <h3>MQTT broker:</h3>
+   <table>
+   <tr>
+      <th><label for="mqtt_url">URL: </label></th>
+      <td><input type="text" name="inputString"></td
+   </tr>
+   <tr>
+      <th><label for="mqtt_username">Username: </label></th>
+      <td><input type="text" name="inputString"></td>
+   </tr>
+   <tr>
+      <th><label for="mqtt_password">Password: </label></th>
+      <td><input type="text" name="inputString"></td>
+   </tr>
+   <tr>
+      <th><label for="mqtt_interval">Interval: </label></th>
+      <td><input type="text" name="inputString"></td>
+   </tr>
+   <tr>
+      <th><label for="mqtt_protocol">Protocol: </label></th>
+      <td><select name="Protocol" id="mqtt_protocol">
+          <option value="tcp">TCP</option>
+          <option value="ccl">SSL</option>
+      </select></td>
+   </tr>
+   </table> 
+   <input type="submit" value="Submit" onclick="submitMqttMessage()">
+   
+   <h3>Account:</h3>
+   <table>
+   <tr>
+      <th><label for="username">Username: </label></th>
+      <td><input type="text" name="inputString"></td>
+   </tr>
+   <tr>
+      <th><label for="password">Password: </label></th>
+      <td><input type="text" name="inputString"></td>
+   </tr>
+   </table> 
+   <input type="submit" value="Submit" onclick="submitAccountMessage()">
+
+   <h3>Options:</h3>
+   <table>
+   <tr>
+      <th><label for="alarm">Alarm: </label></th>
+      <td><input type="checkbox" id="alarm" name="alarm" value="1"></td>
+   </tr>
+   <tr>
+      <th><label for="alarm">Display: </label></th>
+      <td><input type="checkbox" id="display" name="display" value="1"></td>
+   </tr>
+   </table> 
+   <input type="submit" value="Submit" onclick="submitOptionsMessage()">
+   
+</div>
+
+<div id="Logout" class="tabcontent">
+  <h3>Logout</h3>
+  <p>Bye!</p> 
+</div>
+
+<p style="text-align:center;"><a href="https://www.ioko.eu/">www.ioko.eu</a></p>
+ 
+
+<script>
+function openMenu(evt, menuName) {
+  var i, tabcontent, tablinks;
+  tabcontent = document.getElementsByClassName("tabcontent");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+  tablinks = document.getElementsByClassName("tablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+  document.getElementById(menuName).style.display = "block";
+  evt.currentTarget.className += " active";
+}
+</script>
+   
+</body>
+</html> 
