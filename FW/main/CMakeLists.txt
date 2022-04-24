@@ -11,5 +11,6 @@ set(COMPONENT_SRCS  "main.c"
 
 idf_component_register(SRCS "${COMPONENT_SRCS}"
                      INCLUDE_DIRS "."
-                     EMBED_TXTFILES "certs/cacert.pem" "certs/prvtkey.pem"
-                     EMBED_FILES "html/favicon.ico" "html/index.html")
+                     EMBED_TXTFILES "certs/cacert.pem" "certs/prvtkey.pem")
+
+spiffs_create_partition_image(storage ../html FLASH_IN_PROJECT)

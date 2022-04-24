@@ -22,7 +22,7 @@ static esp_err_t __attribute__((unused)) i2c_master_write_slave(i2c_port_t i2c_n
     i2c_master_write_byte(cmd, 0x78, 1);
     i2c_master_write(cmd, data_wr, size, 1);
     i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(i2c_num, cmd, 1000 / portTICK_RATE_MS);
+    esp_err_t ret = i2c_master_cmd_begin(i2c_num, cmd, 1000 / 10);
     i2c_cmd_link_delete(cmd);
     return ret;
 }
@@ -110,7 +110,7 @@ void display_init(void)
 
     ret = pthread_attr_init(&attr);
     assert(ret == 0);
-    pthread_attr_setstacksize(&attr, 10240);
+    pthread_attr_setstacksize(&attr, 1024*5);
     ret = pthread_create(&threadDisplay, &attr, display_thread, NULL);
     assert(ret == 0);
 }

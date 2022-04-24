@@ -23,7 +23,7 @@ void geiger_init(void)
     // Start PWM thread
     ret = pthread_attr_init(&attr);
     assert(ret == 0);
-    pthread_attr_setstacksize(&attr, 10240);
+    pthread_attr_setstacksize(&attr, 1024*2);
     ret = pthread_create(&threadGeiger, &attr, geiger_thread, NULL);
     assert(ret == 0);
 }
