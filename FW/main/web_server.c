@@ -35,6 +35,8 @@
  * handlers and start an HTTPS server.
 */
 
+//#define USE_SSL
+
 static const char *TAG = "WEB_SERVER";
 
 /* Max length a file path can have on storage */
@@ -46,7 +48,7 @@ static const char *TAG = "WEB_SERVER";
 #define MAX_FILE_SIZE_STR "20KB"
 
 /* Scratch buffer size */
-#define SCRATCH_BUFSIZE  8192
+#define SCRATCH_BUFSIZE (1024*4) 
 
 
 struct file_server_data {
@@ -112,7 +114,6 @@ static esp_err_t download_get_handler(httpd_req_t *req)
 {
     char filepath[FILE_PATH_MAX];
     FILE *fd = NULL;
-    struct stat file_stat;
 
     const char *filename = get_path_from_uri(filepath, ((struct file_server_data *)req->user_ctx)->base_path,
                                              req->uri, sizeof(filepath));
@@ -136,7 +137,6 @@ static esp_err_t download_get_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-//    ESP_LOGI(TAG, "Sending file : %s (%ld bytes)...", filename, file_stat.st_size);
     set_content_type_from_file(req, filename);
 
         /* Retrieve the pointer to scratch buffer for temporary storage */
@@ -232,7 +232,7 @@ static httpd_handle_t start_file_server(const char *base_path)
 
     httpd_handle_t server = NULL;
 
-//    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+#ifdef USE_SSL
     httpd_ssl_config_t config = HTTPD_SSL_CONFIG_DEFAULT();
 
     extern const unsigned char cacert_pem_start[] asm("_binary_cacert_pem_start");
@@ -245,11 +245,18 @@ static httpd_handle_t start_file_server(const char *base_path)
     config.prvtkey_pem = prvtkey_pem_start;
     config.prvtkey_len = prvtkey_pem_end - prvtkey_pem_start;
 
+#else
+    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+#endif
 
     #if CONFIG_EXAMPLE_ENABLE_HTTPS_USER_CALLBACK
     config.user_cb = https_server_user_callback;
     #endif
+#ifdef USE_SSL
     esp_err_t ret = httpd_ssl_start(&server, &config);
+#else
+    esp_err_t ret = httpd_start(&server, &config);
+#endif
     if (ESP_OK != ret) {
         ESP_LOGI(TAG, "Error starting server!");
         return NULL;
@@ -279,7 +286,7 @@ void https_server_user_callback(esp_https_server_user_cb_arg_t *user_cb)
     ESP_LOGI(TAG, "Session Created!");
     const mbedtls_x509_crt *cert;
 
-    const size_t buf_size = 1024;
+    const size_t buf_size = 512;
     char *buf = calloc(buf_size, sizeof(char));
     if (buf == NULL) {
         ESP_LOGE(TAG, "Out of memory - Callback execution failed!");
