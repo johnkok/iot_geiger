@@ -3,9 +3,13 @@
 
 #include "main.h"
 #include "driver/uart.h"
+#include "driver/gpio.h"
 
-#define PM_TX_PIO 25
-#define PM_RX_PIO 26
+#define PM_TX_PIO 22
+#define PM_RX_PIO 19
+#define PM_SET    18
+
+#define PM_BUFFER_SZ 512
 
 void air_quality_init(void);
 

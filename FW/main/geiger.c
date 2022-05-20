@@ -1,5 +1,4 @@
 #include "geiger.h"
-#include "driver/gpio.h"
 
 #define GC_GPIO 13
 #define BUZ_GPIO 12

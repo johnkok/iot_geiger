@@ -3,8 +3,6 @@
 static const char *TAG = "AIR";
 const uart_port_t uart_pm = UART_NUM_2;
 
-uint8_t *data = NULL;
-
 typedef struct air_quality_s {
     uint16_t cf1_1;    //!< CF=1, standard particle 1.0um
     uint16_t cf1_25;   //!< CF=1, standard particle 2.5um
@@ -34,10 +32,17 @@ static void *air_thread(void * arg)
 {
     int len = 0;
     uint16_t crc, plen;
+
+    uint8_t * data = (uint8_t *) malloc(PM_BUFFER_SZ);
+
     ESP_LOGI(TAG, "Thread started!");
-    while (true)
+
+    while (data)
     {
-        len = uart_read_bytes(uart_pm, data, 256, 20);
+        gpio_set_level(PM_SET,1);
+        sleep(10);
+
+        len = uart_read_bytes(uart_pm, data, PM_BUFFER_SZ, 20);
 
 	if (len > 0) {
 	    for (int x = 0 ;  x < (len-31) ; x++){
@@ -61,6 +66,13 @@ static void *air_thread(void * arg)
 		ESP_LOGI(TAG, "PM1: %d, PM2.5: %d, PM10: %d", aq.atm_1, aq.atm_25, aq.atm_100);
 	    }
 	}
+        gpio_set_level(PM_SET,0);
+        sleep(290);
+    }
+
+    if (data != NULL)
+    {
+        free(data);
     }
 
     ESP_LOGE(TAG, "Thread ended!");
@@ -73,13 +85,22 @@ void air_quality_init(void)
     pthread_t threadAir;
     int ret;
 
-    data = (uint8_t *) malloc(256);
-    
     // Setup UART2 interface
     ESP_ERROR_CHECK(uart_param_config(uart_pm, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(uart_pm, PM_TX_PIO, PM_RX_PIO, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-    ESP_ERROR_CHECK(uart_driver_install(uart_pm, 256, 0, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_driver_install(uart_pm, PM_BUFFER_SZ, 0, 0, NULL, 0));
     ESP_ERROR_CHECK(uart_flush(uart_pm));
+
+    // Set PM SET GPIOO
+    gpio_config_t pm_conf;
+    pm_conf.intr_type = GPIO_INTR_DISABLE;
+    pm_conf.mode = GPIO_MODE_OUTPUT;
+    pm_conf.pin_bit_mask = 1U<<PM_SET;
+    pm_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    pm_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    gpio_config(&pm_conf);
+
+    gpio_set_level(PM_SET,0);
 
     // Start PWM thread
     ret = pthread_attr_init(&attr);
