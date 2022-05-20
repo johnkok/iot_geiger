@@ -1,10 +1,14 @@
 #include "temp.h"
 #include "DHT22.h"
 
+extern QueueHandle_t data_queue;
+
 static const char *TAG = "TEMP";
 
 static void *temp_thread(void * arg)
 {
+    data_msg_s * dht_msg;
+
     ESP_LOGI(TAG, "Thread started!"); 
 
     while (true)
@@ -13,6 +17,18 @@ static void *temp_thread(void * arg)
         if (readDHT() == DHT_OK)
         {
             ESP_LOGI(TAG, "Temp: %.2f Hum: %.2f", getTemperature(), getHumidity());
+
+            dht_msg = malloc(sizeof(data_msg_s));
+            if (dht_msg)
+            {
+                dht_msg->msg_src = DHT_SRC;
+                dht_msg->dht_info.temperature = getTemperature();
+                dht_msg->dht_info.humidity = getHumidity();
+                if (xQueueSend(data_queue, (void *) &dht_msg, (TickType_t)0) != pdTRUE)
+                {
+                    free(dht_msg);
+                }
+            }
         }
         sleep(60);
     }

@@ -1,5 +1,7 @@
 #include "air_quality.h"
 
+extern QueueHandle_t data_queue;
+
 static const char *TAG = "AIR";
 const uart_port_t uart_pm = UART_NUM_2;
 
@@ -32,6 +34,7 @@ static void *air_thread(void * arg)
 {
     int len = 0;
     uint16_t crc, plen;
+    data_msg_s * pm_msg;
 
     uint8_t * data = (uint8_t *) malloc(PM_BUFFER_SZ);
 
@@ -64,6 +67,19 @@ static void *air_thread(void * arg)
                 // CRC is valid
                 memcpy(&aq, &data[x+4], sizeof(aq));
 		ESP_LOGI(TAG, "PM1: %d, PM2.5: %d, PM10: %d", aq.atm_1, aq.atm_25, aq.atm_100);
+
+                pm_msg = malloc(sizeof(data_msg_s));
+                if (pm_msg)
+                {
+                    pm_msg->msg_src = PM_SRC;
+                    pm_msg->pm_info.pm1 = aq.atm_1;
+                    pm_msg->pm_info.pm2_5 = aq.atm_25;
+                    pm_msg->pm_info.pm10 = aq.atm_100;
+                    if (xQueueSend( data_queue, (void *) &pm_msg, (TickType_t)0) != pdTRUE)
+                    {
+                        free(pm_msg);
+                    }
+                }
 	    }
 	}
         gpio_set_level(PM_SET,0);

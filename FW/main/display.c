@@ -34,7 +34,6 @@ void display_update(uint8_t *ram)
 
     for(m=0;m<8;m++)
     {
-
         buffer[0] = 0;
         buffer[1] = 0xB0 + m;
         i2c_master_write_slave(0, buffer, 2);

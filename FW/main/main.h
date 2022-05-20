@@ -16,6 +16,34 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
+typedef enum msg_src_t
+{
+    GC_SRC,
+    DHT_SRC,
+    PM_SRC
+}msg_src_e;
 
+typedef struct pm_info_t
+{
+    unsigned short pm1;
+    unsigned short pm2_5;
+    unsigned short pm10;
+}pm_info_s;
+
+typedef struct dht_info_t
+{
+    float temperature;
+    float humidity;
+}dht_info_s;
+
+typedef struct data_msg_t
+{
+    msg_src_e msg_src;
+    union {
+        unsigned short gc_count;
+        pm_info_s pm_info;
+        dht_info_s dht_info;
+    };
+} data_msg_s;
 
 #endif

@@ -16,12 +16,12 @@
 #include "temp.h"
 #include "air_quality.h"
 
-#define LED_GPIO 14
-
 static const char *TAG = "MAIN";
+QueueHandle_t data_queue;
 
 void app_main(void)
 {
+    data_msg_s * data_msg_rx;
     //Initialize NVS
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
@@ -32,6 +32,9 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    // Create data queue
+    data_queue = xQueueCreate( 16, sizeof( struct data_message * ) );;
 
     // Init display
     display_init();
@@ -52,24 +55,22 @@ void app_main(void)
 
     // Init web services
     mqtt_init();
-	
+
     ESP_LOGI(TAG, "Initialization finished!");
-
-    gpio_config_t led_conf;
-    led_conf.intr_type = GPIO_INTR_DISABLE;
-    led_conf.mode = GPIO_MODE_OUTPUT;
-    led_conf.pin_bit_mask = 1U<<LED_GPIO;
-    led_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    led_conf.pull_up_en = GPIO_PULLUP_DISABLE;
-    gpio_config(&led_conf);
-
-    gpio_set_level(LED_GPIO,0);
 
     // All done, idle looP
     while (true){
-        sleep(1);
-        gpio_set_level(LED_GPIO,0);
-        sleep(1);
-        gpio_set_level(LED_GPIO,1);
+        if (data_queue != 0)
+        {
+            if( xQueueReceive( data_queue, &data_msg_rx, ( TickType_t ) 10000 ) )
+            {
+                ESP_LOGI(TAG, "Msg recivedi %d", data_msg_rx->msg_src);
+                free(data_msg_rx);
+            }
+        }
+        else // Should not be here...
+        {
+            sleep(1);
+        }
     }
 }
