@@ -7,7 +7,8 @@ set(COMPONENT_SRCS  "main.c"
                     "mqtt_cli.c"
                     "geiger.c"
                     "wifi.c"
-                    "connect.c")
+                    "connect.c"
+                    "DHT22.c")
 
 idf_component_register(SRCS "${COMPONENT_SRCS}"
                      INCLUDE_DIRS "."
