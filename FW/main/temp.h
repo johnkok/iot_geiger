@@ -3,6 +3,8 @@
 
 #include "main.h"
 
+#define DHT22_PIN 33
+
 void temp_init(void);
 
 #endif
