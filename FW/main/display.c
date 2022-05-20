@@ -7,9 +7,9 @@ int i2c_master_port = 0;
 i2c_config_t conf = {
     .mode = I2C_MODE_MASTER,
     .sda_io_num = 23, //I2C_MASTER_SDA_IO,         // select GPIO specific to your project
-    .sda_pullup_en = GPIO_PULLUP_ENABLE,
+    .sda_pullup_en = GPIO_PULLUP_DISABLE,
     .scl_io_num = 21, //I2C_MASTER_SCL_IO,         // select GPIO specific to your project
-    .scl_pullup_en = GPIO_PULLUP_ENABLE,
+    .scl_pullup_en = GPIO_PULLUP_DISABLE,
     .master.clk_speed = 100000, //I2C_MASTER_FREQ_HZ,  // select frequency specific to your project
 //  .clk_flags = 0,          !< Optional, you can use I2C_SCLK_SRC_FLAG_* flags to choose i2c source clock here.
 };
@@ -66,12 +66,12 @@ int display_print(uint8_t *ram, uint8_t x, uint8_t y, char *text)
 
 static void *display_thread(void * arg)
 {
-	ESP_LOGI(TAG, "Thread started!");
+    ESP_LOGI(TAG, "Thread started!");
     while (true)
     {
         sleep(1); 
     }
-	ESP_LOGE(TAG, "Thread ended!");
+    ESP_LOGE(TAG, "Thread ended!");
 
     return NULL;
 }

@@ -4,12 +4,12 @@ static const char *TAG = "TEMP";
 
 static void *temp_thread(void * arg)
 {
-	ESP_LOGI(TAG, "Thread started!"); 
-	while (true)
+    ESP_LOGI(TAG, "Thread started!"); 
+    while (true)
     {
         sleep(1);
     }
-	ESP_LOGE(TAG, "Thread ended!");
+    ESP_LOGE(TAG, "Thread ended!");
 
     return NULL;
 }

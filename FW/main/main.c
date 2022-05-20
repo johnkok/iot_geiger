@@ -16,6 +16,8 @@
 #include "temp.h"
 #include "air_quality.h"
 
+#define LED_GPIO 14
+
 static const char *TAG = "MAIN";
 
 void app_main(void)
@@ -50,10 +52,23 @@ void app_main(void)
     // Init web services
     mqtt_init();
 	
-	ESP_LOGI(TAG, "Initialization finished!");
-	
-    // All done, exit?
+    ESP_LOGI(TAG, "Initialization finished!");
+
+    gpio_config_t led_conf;
+    led_conf.intr_type = GPIO_INTR_DISABLE;
+    led_conf.mode = GPIO_MODE_OUTPUT;
+    led_conf.pin_bit_mask = 1U<<LED_GPIO;
+    led_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    led_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    gpio_config(&led_conf);
+
+    gpio_set_level(LED_GPIO,0);
+
+    // All done, idle looP
     while (true){
-		sleep(10.0);
-	}
+        sleep(1);
+        gpio_set_level(LED_GPIO,0);
+        sleep(1);
+        gpio_set_level(LED_GPIO,1);
+    }
 }
