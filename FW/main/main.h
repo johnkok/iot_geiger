@@ -36,6 +36,23 @@ typedef struct dht_info_t
     float humidity;
 }dht_info_s;
 
+typedef struct rx_data_t
+{
+    unsigned short pm1;
+    unsigned short pm2_5;
+    unsigned short pm10;
+    float temperature;
+    float humidity;
+    unsigned short gc_count;
+}rx_data_s;
+
+typedef struct rx_store_t
+{
+    rx_data_s current;
+//    rx_data_s mean;
+//    rx_data_s hourly[24];
+}rx_store_s;
+
 typedef struct data_msg_t
 {
     msg_src_e msg_src;

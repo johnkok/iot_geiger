@@ -2,6 +2,7 @@
 #include "fonts.h"
 
 static const char *TAG = "DISPLAY";
+extern rx_store_s rx_store;
 
 int i2c_master_port = 0;
 i2c_config_t conf = {
@@ -13,7 +14,7 @@ i2c_config_t conf = {
     .master.clk_speed = 100000, //I2C_MASTER_FREQ_HZ,  // select frequency specific to your project
 //  .clk_flags = 0,          !< Optional, you can use I2C_SCLK_SRC_FLAG_* flags to choose i2c source clock here.
 };
-static uint8_t display_ram[8][128];
+static uint8_t display_ram[8][130];
 
 static esp_err_t __attribute__((unused)) i2c_master_write_slave(i2c_port_t i2c_num, uint8_t *data_wr, size_t size)
 {
@@ -42,12 +43,13 @@ void display_update(uint8_t *ram)
         buffer[1] = 0x10;
         i2c_master_write_slave(0, buffer, 2);
 
-	for(n=0;n<128;n++)
+	for(n=0;n<130;n++)
         {
             buffer[0] = 0x40;
-            buffer[1] = ram[m*128 + n];
+            buffer[1] = ram[m*130 + n];
             i2c_master_write_slave(0, buffer, 2);
         }
+        buffer[1] = 0;
     }
 }
 
@@ -57,7 +59,7 @@ int display_print(uint8_t *ram, uint8_t x, uint8_t y, char *text)
     {
         for (int c = 0 ; c < 6 ; c++)
 	{
-            ram[y*128 + x+i*6 + c + 2] = fonts[(text[i] - 0x20)*6 + c];
+            ram[y*130 + x+i*6 + c + 2] = fonts[(text[i] - 0x20)*6 + c];
 	}
     }
     return 0;
@@ -65,10 +67,26 @@ int display_print(uint8_t *ram, uint8_t x, uint8_t y, char *text)
 
 static void *display_thread(void * arg)
 {
+    char buffer[64];
     ESP_LOGI(TAG, "Thread started!");
     while (true)
     {
-        sleep(1); 
+        sleep(1);
+        display_print(&display_ram[0][27], 0, 0, "Current data");
+        sprintf(buffer, "GC Cnts: %6.0d", rx_store.current.gc_count);
+        display_print(&display_ram[1][4], 0, 0, buffer);
+        sprintf(buffer, "Temp.:    %3.2f C", rx_store.current.temperature);
+        display_print(&display_ram[2][4], 0, 0, buffer);
+        sprintf(buffer, "Humidity: %3.2f %%", rx_store.current.humidity);
+        display_print(&display_ram[3][4], 0, 0, buffer);
+        sprintf(buffer, "PM1:   %6.0d ug/m3", rx_store.current.pm1);
+        display_print(&display_ram[4][4], 0, 0, buffer);
+        sprintf(buffer, "PM2.5: %6.0d ug/m3", rx_store.current.pm2_5);
+        display_print(&display_ram[5][4], 0, 0, buffer);
+        sprintf(buffer, "PM10:  %6.0d ug/m3", rx_store.current.pm10);
+        display_print(&display_ram[6][4], 0, 0, buffer);        
+        display_print(&display_ram[7][30], 0, 0, "www.ioko.eu");
+        display_update(&display_ram[0][0]);
     }
     ESP_LOGE(TAG, "Thread ended!");
 
@@ -103,10 +121,6 @@ void display_init(void)
     display_update(&display_ram[0][0]);
 
     // Start display thread
-    ret = pthread_create(&threadDisplay, NULL, display_thread, NULL);
-    assert(ret == 0);
-
-
     ret = pthread_attr_init(&attr);
     assert(ret == 0);
     pthread_attr_setstacksize(&attr, 1024*5);

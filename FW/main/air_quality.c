@@ -30,6 +30,11 @@ uart_config_t uart_config = {
 
 air_quality_t aq;
 
+uint16_t swap(uint16_t data)
+{
+    return ((data & 0xFF00) >> 8) | ((data & 0x00FF) << 8);
+}
+
 static void *air_thread(void * arg)
 {
     int len = 0;
@@ -72,9 +77,9 @@ static void *air_thread(void * arg)
                 if (pm_msg)
                 {
                     pm_msg->msg_src = PM_SRC;
-                    pm_msg->pm_info.pm1 = aq.atm_1;
-                    pm_msg->pm_info.pm2_5 = aq.atm_25;
-                    pm_msg->pm_info.pm10 = aq.atm_100;
+                    pm_msg->pm_info.pm1 = swap(aq.cf1_1);
+                    pm_msg->pm_info.pm2_5 = swap(aq.cf1_25);
+                    pm_msg->pm_info.pm10 = swap(aq.cf1_10);
                     if (xQueueSend( data_queue, (void *) &pm_msg, (TickType_t)0) != pdTRUE)
                     {
                         free(pm_msg);

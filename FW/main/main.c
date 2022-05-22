@@ -18,6 +18,7 @@
 
 static const char *TAG = "MAIN";
 QueueHandle_t data_queue;
+rx_store_s rx_store = {};
 
 void app_main(void)
 {
@@ -32,6 +33,15 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    //Initialize custom NVS
+    ret = nvs_flash_init_partition("iot_geiger");
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase_partition("iot_geiger"));
+        ret = nvs_flash_init_partition("iot_geiger");
+    }
+    ESP_ERROR_CHECK(ret);
 
     // Create data queue
     data_queue = xQueueCreate( 16, sizeof( struct data_message * ) );;
@@ -57,20 +67,41 @@ void app_main(void)
     mqtt_init();
 
     ESP_LOGI(TAG, "Initialization finished!");
-
+    rx_store.current.temperature = 0.0f;
+    rx_store.current.humidity = 0.0f;
+    
     // All done, idle looP
-    while (true){
+    while (true)
+    {
         if (data_queue != 0)
         {
-            if( xQueueReceive( data_queue, &data_msg_rx, ( TickType_t ) 10000 ) )
+            if(xQueueReceive(data_queue, &data_msg_rx, (TickType_t)10000))
             {
-                ESP_LOGI(TAG, "Msg recivedi %d", data_msg_rx->msg_src);
+                switch (data_msg_rx->msg_src)
+                {
+                case (GC_SRC):
+                    rx_store.current.gc_count += data_msg_rx->gc_count;
+                    break;
+                case (DHT_SRC):
+                    rx_store.current.temperature = data_msg_rx->dht_info.temperature;
+                    rx_store.current.humidity = data_msg_rx->dht_info.humidity;
+                    break;
+                case (PM_SRC):
+                    rx_store.current.pm1 = data_msg_rx->pm_info.pm1;
+                    rx_store.current.pm2_5 = data_msg_rx->pm_info.pm2_5;
+                    rx_store.current.pm10 = data_msg_rx->pm_info.pm10;
+                    break;
+                default:
+                    ESP_LOGE(TAG, "Invalid message type (%X)!", data_msg_rx->msg_src);
+                    break;
+                }
                 free(data_msg_rx);
             }
         }
         else // Should not be here...
         {
-            sleep(1);
+            ESP_LOGE(TAG, "Queue initialization error!");
+            break;
         }
     }
 }

@@ -2,6 +2,8 @@
 #define __WIFI_H__
 
 #include "main.h"
+#include "esp_mac.h"
+#include "esp_wifi.h"
 
 /* The examples use WiFi configuration that you can set via project configuration menu
  *
@@ -11,6 +13,8 @@
 #define EXAMPLE_ESP_WIFI_SSID      "IOT_GEIGER"
 #define EXAMPLE_ESP_WIFI_PASS      "IOT_GEIGER"
 #define EXAMPLE_ESP_MAXIMUM_RETRY  CONFIG_ESP_MAXIMUM_RETRY
+#define EXAMPLE_ESP_WIFI_CHANNEL   0
+#define EXAMPLE_MAX_STA_CONN       10
 
 /* The event group allows multiple bits for each event, but we only care about two events:
  *  * - we are connected to the AP with an IP
