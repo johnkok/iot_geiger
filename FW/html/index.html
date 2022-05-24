@@ -46,6 +46,14 @@ body {font-family: Arial;}
 </head>
 <body>
 
+<script>
+function submitWifiMessage() {
+    window.location.href = '?ssid=' + document.getElementById('ssid').value +
+                           '&wifi_password=' + document.getElementById('wifi_password').value + 
+                           '&wifi_mode=' + document.getElementById('wifi_mode').value;
+}
+</script>
+
 <h2>Radiation monitor</h2>
 
 <div class="tab">
@@ -56,7 +64,7 @@ body {font-family: Arial;}
 
 <div id="Status" class="tabcontent">
   <h3>Current status:</h3>
-  <p>...</p>
+  <iframe src="/status" title="Current status"></iframe>
 </div>
 
 <div id="Configuration" class="tabcontent">
@@ -66,11 +74,18 @@ body {font-family: Arial;}
    <table>
    <tr>
       <th><label for="ssid">SSID: </label></th>
-      <td><input type="text" name="inputString"></td>
+      <td><input type="text" name="ssidString" id="ssid"></td>
    </tr>
    <tr>
       <th><label for="wifi_password">Password: </label></th>
-      <td><input type="text" name="inputString"></td>
+      <td><input type="password" name="wifi_passwordString" id="wifi_password"></td>
+   </tr>
+   <tr>
+      <th><label for="wifi_mode_l">WiFi Mode: </label></th>
+      <td><select name="wifi_mode" id="wifi_mode">
+          <option value="AP">Access point</option>
+          <option value="STA">Station</option>
+      </select></td>
    </tr>
    </table> 
    <input type="submit" value="Submit" onclick="submitWifiMessage()">
@@ -87,7 +102,7 @@ body {font-family: Arial;}
    </tr>
    <tr>
       <th><label for="mqtt_password">Password: </label></th>
-      <td><input type="text" name="inputString"></td>
+      <td><input type="password" name="inputString"></td>
    </tr>
    <tr>
       <th><label for="mqtt_interval">Interval: </label></th>
@@ -111,13 +126,21 @@ body {font-family: Arial;}
    </tr>
    <tr>
       <th><label for="password">Password: </label></th>
-      <td><input type="text" name="inputString"></td>
+      <td><input type="password" name="inputString"></td>
    </tr>
    </table> 
    <input type="submit" value="Submit" onclick="submitAccountMessage()">
 
    <h3>Options:</h3>
    <table>
+   <tr>
+      <th><label for="led">LED: </label></th>
+      <td><input type="checkbox" id="led" name="led" value="1"></td>
+   </tr>
+   <tr>
+      <th><label for="buzzer">Buzzer: </label></th>
+      <td><input type="checkbox" id="buzzer" name="buzzer" value="1"></td>
+   </tr>
    <tr>
       <th><label for="alarm">Alarm: </label></th>
       <td><input type="checkbox" id="alarm" name="alarm" value="1"></td>

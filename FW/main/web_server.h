@@ -6,6 +6,8 @@
 #define CONFIG_EXAMPLE_BASIC_AUTH_USERNAME "iot"
 #define CONFIG_EXAMPLE_BASIC_AUTH_PASSWORD "iot"
 
+#define SCRATCH_BUFSIZE (1024*10)
+
 void web_init(void);
 
 #endif

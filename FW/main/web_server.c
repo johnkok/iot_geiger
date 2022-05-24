@@ -57,6 +57,25 @@ typedef struct {
 
 
 #define HTTPD_401      "401 UNAUTHORIZED"           /*!< HTTP Response 401 */
+#define IS_FILE_EXT(filename, ext) \
+    (strcasecmp(&filename[strlen(filename) - sizeof(ext) + 1], ext) == 0)
+
+/* Set HTTP response content type according to file extension */
+static esp_err_t set_content_type_from_file(httpd_req_t *req, const char *filename)
+{
+    if (IS_FILE_EXT(filename, ".pdf")) {
+        return httpd_resp_set_type(req, "application/pdf");
+    } else if (IS_FILE_EXT(filename, ".html")) {
+        return httpd_resp_set_type(req, "text/html");
+    } else if (IS_FILE_EXT(filename, ".jpeg")) {
+        return httpd_resp_set_type(req, "image/jpeg");
+    } else if (IS_FILE_EXT(filename, ".ico")) {
+        return httpd_resp_set_type(req, "image/x-icon");
+    }
+    /* This is a limited set only */
+    /* For any other type always set as plain text */
+    return httpd_resp_set_type(req, "text/plain");
+}
 
 static char *http_auth_basic(const char *username, const char *password)
 {
@@ -88,7 +107,10 @@ static char *http_auth_basic(const char *username, const char *password)
 static esp_err_t basic_auth_get_handler(httpd_req_t *req)
 {
     char *buf = NULL;
+    char *qbuf = NULL;
     size_t buf_len = 0;
+    FILE *fd = NULL;
+    nvs_handle_t nvs_handle;
     basic_auth_info_t *basic_auth_info = req->user_ctx;
 
     buf_len = httpd_req_get_hdr_value_len(req, "Authorization") + 1;
@@ -122,19 +144,88 @@ static esp_err_t basic_auth_get_handler(httpd_req_t *req)
             httpd_resp_send(req, NULL, 0);
         } else {
             ESP_LOGI(TAG, "Authenticated!");
-            char *basic_auth_resp = NULL;
             httpd_resp_set_status(req, HTTPD_200);
             httpd_resp_set_type(req, "application/json");
             httpd_resp_set_hdr(req, "Connection", "keep-alive");
-            asprintf(&basic_auth_resp, "{\"authenticated\": true,\"user\": \"%s\"}", basic_auth_info->username);
-            if (!basic_auth_resp) {
-                ESP_LOGE(TAG, "No enough memory for basic authorization response");
+
+	    /* Read URL query string length and allocate memory for length + 1,
+	     * extra byte for null termination */
+	    buf_len = httpd_req_get_url_query_len(req) + 1;
+	    if (buf_len > 1) {
+		qbuf = malloc(buf_len);
+		if (httpd_req_get_url_query_str(req, qbuf, buf_len) == ESP_OK) {
+		    ESP_LOGI(TAG, "Found URL query => %s", qbuf);
+                    nvs_open_from_partition("iot_geiger", "default", NVS_READWRITE, &nvs_handle);
+		    char param[32];
+		    /* Get value of expected key from query string */
+		    if (httpd_query_key_value(qbuf, "ssid", param, sizeof(param)) == ESP_OK) {
+		        ESP_LOGI(TAG, "Found URL query parameter => ssid=%s", param);
+                        nvs_set_str(nvs_handle, "wifi_ssid", param);
+		    }
+		    if (httpd_query_key_value(qbuf, "wifi_password", param, sizeof(param)) == ESP_OK) {
+		        ESP_LOGI(TAG, "Found URL query parameter => wifi_password=%s", param);
+                        nvs_set_str(nvs_handle, "wifi_pass", param);
+		    }
+		    if (httpd_query_key_value(qbuf, "wifi_mode", param, sizeof(param)) == ESP_OK) {
+		        ESP_LOGI(TAG, "Found URL query parameter => wifi_mode=%s", param);
+		        if (strncmp(param, "AP", 2) == 0)
+		        {
+                            nvs_set_u8(nvs_handle, "wifi_mode", 0);
+                        }
+		        else
+		        {
+                            nvs_set_u8(nvs_handle, "wifi_mode", 1);
+		        }
+		    }
+                    nvs_close(nvs_handle);
+		}
+		free(qbuf);
+	    }
+
+	    fd = fopen("/spiffs/index.html", "r");
+	    if (!fd) {
+		/* Respond with 500 Internal Server Error */
+		httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read existing file");
+		return ESP_FAIL;
+	    }
+
+	    set_content_type_from_file(req, "/spiffs/index.html");
+
+	    /* Retrieve the pointer to scratch buffer for temporary storage */
+	    char *chunk = malloc(SCRATCH_BUFSIZE);
+            if (!chunk) {
+                ESP_LOGE(TAG, "No enough memory for index response");
                 free(auth_credentials);
                 free(buf);
                 return ESP_ERR_NO_MEM;
             }
-            httpd_resp_send(req, basic_auth_resp, strlen(basic_auth_resp));
-            free(basic_auth_resp);
+
+	    size_t chunksize;
+	    do {
+		/* Read file in chunks into the scratch buffer */
+		chunksize = fread(chunk, 1, SCRATCH_BUFSIZE, fd);
+
+		if (chunksize > 0) {
+		    /* Send the buffer contents as HTTP response chunk */
+		    if (httpd_resp_send_chunk(req, chunk, chunksize) != ESP_OK) {
+		        fclose(fd);
+		        ESP_LOGE(TAG, "File sending failed!");
+		        /* Abort sending file */
+		        httpd_resp_sendstr_chunk(req, NULL);
+		        /* Respond with 500 Internal Server Error */
+		        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
+                        free(auth_credentials);
+	                free(buf);
+	                fclose(fd);
+                        return ESP_FAIL;
+		   }
+		}
+
+		/* Keep looping till the whole file is sent */
+	    } while (chunksize != 0);
+
+            free(chunk);
+            fclose(fd);
         }
         free(auth_credentials);
         free(buf);
@@ -152,7 +243,7 @@ static esp_err_t basic_auth_get_handler(httpd_req_t *req)
 
 
 static httpd_uri_t basic_auth = {
-    .uri       = "/basic_auth",
+    .uri       = "/",
     .method    = HTTP_GET,
     .handler   = basic_auth_get_handler,
 };
@@ -168,82 +259,6 @@ static void httpd_register_basic_auth(httpd_handle_t server)
         httpd_register_uri_handler(server, &basic_auth);
     }
 }
-
-/* An HTTP GET handler */
-static esp_err_t index_get_handler(httpd_req_t *req)
-{
-    char*  buf;
-    size_t buf_len;
-
-    /* Get header value string length and allocate memory for length + 1,
-     * extra byte for null termination */
-    buf_len = httpd_req_get_hdr_value_len(req, "Host") + 1;
-    if (buf_len > 1) {
-        buf = malloc(buf_len);
-        /* Copy null terminated value string into buffer */
-        if (httpd_req_get_hdr_value_str(req, "Host", buf, buf_len) == ESP_OK) {
-            ESP_LOGI(TAG, "Found header => Host: %s", buf);
-        }
-        free(buf);
-    }
-
-    buf_len = httpd_req_get_hdr_value_len(req, "Test-Header-2") + 1;
-    if (buf_len > 1) {
-        buf = malloc(buf_len);
-        if (httpd_req_get_hdr_value_str(req, "Test-Header-2", buf, buf_len) == ESP_OK) {
-            ESP_LOGI(TAG, "Found header => Test-Header-2: %s", buf);
-        }
-        free(buf);
-    }
-
-    buf_len = httpd_req_get_hdr_value_len(req, "Test-Header-1") + 1;
-    if (buf_len > 1) {
-        buf = malloc(buf_len);
-        if (httpd_req_get_hdr_value_str(req, "Test-Header-1", buf, buf_len) == ESP_OK) {
-            ESP_LOGI(TAG, "Found header => Test-Header-1: %s", buf);
-        }
-        free(buf);
-    }
-
-    /* Read URL query string length and allocate memory for length + 1,
-     * extra byte for null termination */
-    buf_len = httpd_req_get_url_query_len(req) + 1;
-    if (buf_len > 1) {
-        buf = malloc(buf_len);
-        if (httpd_req_get_url_query_str(req, buf, buf_len) == ESP_OK) {
-            ESP_LOGI(TAG, "Found URL query => %s", buf);
-            char param[32];
-            /* Get value of expected key from query string */
-            if (httpd_query_key_value(buf, "query1", param, sizeof(param)) == ESP_OK) {
-                ESP_LOGI(TAG, "Found URL query parameter => query1=%s", param);
-            }
-            if (httpd_query_key_value(buf, "query3", param, sizeof(param)) == ESP_OK) {
-                ESP_LOGI(TAG, "Found URL query parameter => query3=%s", param);
-            }
-            if (httpd_query_key_value(buf, "query2", param, sizeof(param)) == ESP_OK) {
-                ESP_LOGI(TAG, "Found URL query parameter => query2=%s", param);
-            }
-        }
-        free(buf);
-    }
-
-    /* Set some custom headers */
-    httpd_resp_set_hdr(req, "Custom-Header-1", "Custom-Value-1");
-    httpd_resp_set_hdr(req, "Custom-Header-2", "Custom-Value-2");
-
-    /* Send response with custom headers and body set as the
-     * string passed in user context*/
-    const char* resp_str = (const char*) req->user_ctx;
-    httpd_resp_send(req, resp_str, HTTPD_RESP_USE_STRLEN);
-
-    /* After sending the HTTP response the old HTTP request
-     * headers are lost. Check if HTTP request headers can be read now. */
-    if (httpd_req_get_hdr_value_len(req, "Host") == 0) {
-        ESP_LOGI(TAG, "Request headers lost");
-    }
-    return ESP_OK;
-}
-
 
 static esp_err_t status_get_handler(httpd_req_t *req)
 {
@@ -287,15 +302,6 @@ static esp_err_t status_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-static const httpd_uri_t home = {
-    .uri       = "/index.html",
-    .method    = HTTP_GET,
-    .handler   = index_get_handler,
-    /* Let's pass response string in user
-     * context to demonstrate it's usage */
-    .user_ctx  = NULL
-};
-
 static const httpd_uri_t status = {
     .uri       = "/status",
     .method    = HTTP_GET,
@@ -308,12 +314,11 @@ static const httpd_uri_t status = {
 
 /* This handler allows the custom error handling functionality to be
  * tested from client side. For that, when a PUT request 0 is sent to
- * URI /ctrl, the /hello and /echo URIs are unregistered and following
+ * URI /status URIs are unregistered and following
  * custom error handler http_404_error_handler() is registered.
- * Afterwards, when /hello or /echo is requested, this custom error
+ * Afterwards, when /status is requested, this custom error
  * handler is invoked which, after sending an error message to client,
- * either closes the underlying socket (when requested URI is /echo)
- * or keeps it open (when requested URI is /hello). This allows the
+ * keeps it open (when requested URI is /status). This allows the
  * client to infer if the custom error handler is functioning as expected
  * by observing the socket state.
  */
@@ -321,10 +326,6 @@ esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
 {
     if (strcmp("/status", req->uri) == 0) {
         httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "/status URI is not available");
-        /* Return ESP_OK to keep underlying socket open */
-        return ESP_OK;
-    }else if (strcmp("/index.html", req->uri) == 0) {
-        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "/index.html URI is not available");
         /* Return ESP_OK to keep underlying socket open */
         return ESP_OK;
     }
@@ -344,7 +345,6 @@ static httpd_handle_t start_webserver(void)
     if (httpd_start(&server, &config) == ESP_OK) {
         // Set URI handlers
         ESP_LOGI(TAG, "Registering URI handlers");
-        httpd_register_uri_handler(server, &home);
         httpd_register_uri_handler(server, &status);
         httpd_register_basic_auth(server);
         return server;

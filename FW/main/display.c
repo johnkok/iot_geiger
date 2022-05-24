@@ -28,6 +28,11 @@ static esp_err_t __attribute__((unused)) i2c_master_write_slave(i2c_port_t i2c_n
     return ret;
 }
 
+void display_clear()
+{
+    memset(display_ram, 0x00, sizeof(display_ram));
+}
+
 void display_update(uint8_t *ram)
 {
     unsigned char m,n;
@@ -68,6 +73,9 @@ int display_print(uint8_t *ram, uint8_t x, uint8_t y, char *text)
 static void *display_thread(void * arg)
 {
     char buffer[64];
+    int erase_delay;
+    nvs_handle_t nvs_handle;
+
     ESP_LOGI(TAG, "Thread started!");
     while (true)
     {
@@ -87,6 +95,29 @@ static void *display_thread(void * arg)
         display_print(&display_ram[6][4], 0, 0, buffer);        
         display_print(&display_ram[7][30], 0, 0, "www.ioko.eu");
         display_update(&display_ram[0][0]);
+
+        // Check for factory reset
+        erase_delay = 0;
+        while (gpio_get_level(BUTTON_GPIO) == 0)
+        {
+            display_clear();
+            display_print(&display_ram[0][27], 0, 0, "Erase data?");
+            display_update(&display_ram[0][0]);
+            erase_delay++;
+            sleep(1);
+            if (erase_delay == 5)
+            {
+                ESP_LOGI(TAG, "Erase NVS storage!");
+	        nvs_open_from_partition("iot_geiger", "default", NVS_READWRITE, &nvs_handle);
+                nvs_erase_all(nvs_handle);
+                nvs_close(nvs_handle);
+                display_clear();
+                display_print(&display_ram[0][27], 0, 0, "Erase done!");
+                display_update(&display_ram[0][0]);
+                sleep(5);
+                break;
+            }
+        }
     }
     ESP_LOGE(TAG, "Thread ended!");
 
@@ -102,6 +133,15 @@ void display_init(void)
     int ret;
 
     memset(display_ram, 0, sizeof(display_ram));
+
+    // Confidure BUZZER GPIO
+    gpio_config_t io_conf = {};
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pin_bit_mask = 1U<<BUTTON_GPIO;
+    io_conf.pull_down_en = 0;
+    io_conf.pull_up_en = 0;
+    gpio_config(&io_conf);
 
     i2c_driver_install(i2c_master_port, conf.mode, 0, 0, 0);
     i2c_param_config(i2c_master_port, &conf);
