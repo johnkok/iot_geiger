@@ -3,6 +3,9 @@
 
 #include "main.h"
 
+#define CONFIG_EXAMPLE_BASIC_AUTH_USERNAME "iot"
+#define CONFIG_EXAMPLE_BASIC_AUTH_PASSWORD "iot"
+
 void web_init(void);
 
 #endif

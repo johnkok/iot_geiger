@@ -1,3 +1,4 @@
 PCB/iot_geiger/iot_geiger-backups
 FW/build
+FW/main/build
 FW/sdkconfig.old
