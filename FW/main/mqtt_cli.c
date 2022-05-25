@@ -2,6 +2,12 @@
 
 static const char *TAG = "MQTT";
 static const char *CONFIG_BROKER_URL = "192.168.1.1";
+uint16_t mqtt_interval = 60;
+uint8_t mqtt_protocol = 0;
+char mqtt_port[16];
+char mqtt_username[16];
+char mqtt_password[16];
+char mqtt_broker[16];
 
 static void log_error_if_nonzero(const char *message, int error_code)
 {
@@ -27,21 +33,12 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     esp_mqtt_event_handle_t event = event_data;
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
+	
     switch ((esp_mqtt_event_id_t)event_id) {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
-        msg_id = esp_mqtt_client_publish(client, "/topic/qos1", "data_3", 0, 1, 0);
+        msg_id = esp_mqtt_client_publish(client, "/geiger/qos1", "data_3", 0, 1, 0);
         ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
-/*
-        msg_id = esp_mqtt_client_subscribe(client, "/topic/qos0", 0);
-        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-
-        msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
-        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-
-        msg_id = esp_mqtt_client_unsubscribe(client, "/topic/qos1");
-        ESP_LOGI(TAG, "sent unsubscribe successful, msg_id=%d", msg_id);
-*/
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
@@ -80,10 +77,50 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
 void mqtt_init(void)
 {
+	nvs_handle_t nvs_handle;
+    size_t required_size;
+
     esp_mqtt_client_config_t mqtt_cfg = {
         .uri = CONFIG_BROKER_URL,
     };
 
+    if (nvs_open_from_partition("iot_geiger", "default", NVS_READONLY, &nvs_handle) == ESP_OK)
+	{
+		required_size = 16;
+		if (nvs_get_str(nvs_handle, "mqtt_username", &mqtt_username[0], &required_size) != ESP_OK)
+		{
+			ESP_LOGE(TAG, "mqtt_username not in NVS");
+		}
+		required_size = 16;
+		if (nvs_get_str(nvs_handle, "mqtt_password", &mqtt_password[0], &required_size) != ESP_OK)
+		{
+			ESP_LOGE(TAG, "mqtt_password not in NVS");
+		}
+		if (nvs_get_u16(nvs_handle, "mqtt_interval", &mqtt_interval) != ESP_OK)
+		{
+			ESP_LOGE(TAG, "mqtt_interval not in NVS");
+		}
+		required_size = 16;
+		if (nvs_get_str(nvs_handle, "mqtt_broker", &mqtt_broker[0], &required_size) != ESP_OK)
+		{
+			ESP_LOGE(TAG, "mqtt_broker not in NVS");
+		}
+		else
+		{
+	        mqtt_cfg.uri = &mqtt_broker[0];
+		}
+		if (nvs_get_u8(nvs_handle, "mqtt_protocol", &mqtt_protocol) != ESP_OK)
+		{
+			ESP_LOGE(TAG, "mqtt_protocol not in NVS");
+		}
+		required_size = 16;
+		if (nvs_get_str(nvs_handle, "mqtt_port", &mqtt_port[0], &required_size) != ESP_OK)
+		{
+			ESP_LOGE(TAG, "mqtt_port not in NVS");
+		}
+		nvs_close(nvs_handle);
+	}
+	
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
     /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);

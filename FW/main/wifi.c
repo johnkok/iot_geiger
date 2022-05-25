@@ -60,13 +60,10 @@ void wifi_init_softap(void)
             .password = EXAMPLE_ESP_WIFI_PASS,
             .max_connection = EXAMPLE_MAX_STA_CONN,
             .authmode = WIFI_AUTH_WPA_WPA2_PSK,
-            .pmf_cfg = {
-                    .required = false,
-            },
         },
     };
-    strncpy((char *)&wifi_config.ap.ssid[0], &wifi_ssid[0], strnlen(wifi_ssid,32));
-    strncpy((char *)&wifi_config.ap.password[0], &wifi_pass[0], strnlen(wifi_pass,32));
+    strncpy((char *)wifi_config.ap.ssid, wifi_ssid, strnlen(wifi_ssid,32));
+    strncpy((char *)wifi_config.ap.password, wifi_pass, strnlen(wifi_pass,32));
     wifi_config.ap.ssid_len = strnlen(wifi_ssid,32);
     if (strlen(EXAMPLE_ESP_WIFI_PASS) == 0) {
         wifi_config.ap.authmode = WIFI_AUTH_OPEN;
@@ -117,8 +114,8 @@ void wifi_init_sta(void)
             },
         },
     };
-    strncpy((char *)&wifi_config.sta.ssid[0], &wifi_ssid[0], strnlen(wifi_ssid,32));
-    strncpy((char *)&wifi_config.sta.password[0], &wifi_pass[0], strnlen(wifi_pass,32));
+    strncpy((char *)wifi_config.sta.ssid, wifi_ssid, strnlen(wifi_ssid,32));
+    strncpy((char *)wifi_config.sta.password, wifi_pass, strnlen(wifi_pass,32));
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );

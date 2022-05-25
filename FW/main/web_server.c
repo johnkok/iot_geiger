@@ -55,6 +55,8 @@ typedef struct {
     char    *password;
 } basic_auth_info_t;
 
+char  auth_username[16] = CONFIG_EXAMPLE_BASIC_AUTH_USERNAME;
+char  auth_password[16] = CONFIG_EXAMPLE_BASIC_AUTH_PASSWORD;
 
 #define HTTPD_401      "401 UNAUTHORIZED"           /*!< HTTP Response 401 */
 #define IS_FILE_EXT(filename, ext) \
@@ -158,7 +160,8 @@ static esp_err_t basic_auth_get_handler(httpd_req_t *req)
                     nvs_open_from_partition("iot_geiger", "default", NVS_READWRITE, &nvs_handle);
 		    char param[32];
 		    /* Get value of expected key from query string */
-		    if (httpd_query_key_value(qbuf, "ssid", param, sizeof(param)) == ESP_OK) {
+		    // WiFi
+			if (httpd_query_key_value(qbuf, "ssid", param, sizeof(param)) == ESP_OK) {
 		        ESP_LOGI(TAG, "Found URL query parameter => ssid=%s", param);
                         nvs_set_str(nvs_handle, "wifi_ssid", param);
 		    }
@@ -176,8 +179,46 @@ static esp_err_t basic_auth_get_handler(httpd_req_t *req)
 		        {
                             nvs_set_u8(nvs_handle, "wifi_mode", 1);
 		        }
+            }
+			// web server
+		    if (httpd_query_key_value(qbuf, "auth_username", param, sizeof(param)) == ESP_OK) {
+		        ESP_LOGI(TAG, "Found URL query parameter => auth_username=%s", param);
+                        nvs_set_str(nvs_handle, "auth_username", param);
 		    }
-                    nvs_close(nvs_handle);
+		    if (httpd_query_key_value(qbuf, "auth_password", param, sizeof(param)) == ESP_OK) {
+		        ESP_LOGI(TAG, "Found URL query parameter => auth_password=%s", param);
+                        nvs_set_str(nvs_handle, "auth_password", param);
+		    }
+            // MQTT
+		    if (httpd_query_key_value(qbuf, "mqtt_username", param, sizeof(param)) == ESP_OK) {
+		        ESP_LOGI(TAG, "Found URL query parameter => mqtt_username=%s", param);
+                        nvs_set_str(nvs_handle, "mqtt_username", param);
+		    }
+		    if (httpd_query_key_value(qbuf, "mqtt_port", param, sizeof(param)) == ESP_OK) {
+		        ESP_LOGI(TAG, "Found URL query parameter => mqtt_port=%s", param);
+                        nvs_set_str(nvs_handle, "mqtt_port", param);
+		    }
+		    if (httpd_query_key_value(qbuf, "mqtt_password", param, sizeof(param)) == ESP_OK) {
+		        ESP_LOGI(TAG, "Found URL query parameter => mqtt_password=%s", param);
+                        nvs_set_str(nvs_handle, "mqtt_password", param);
+		    }
+		    if (httpd_query_key_value(qbuf, "mqtt_interval", param, sizeof(param)) == ESP_OK) {
+		        ESP_LOGI(TAG, "Found URL query parameter => mqtt_interval=%s", param);
+                        nvs_set_str(nvs_handle, "mqtt_interval", param);
+		    }
+		    if (httpd_query_key_value(qbuf, "mqtt_protocol", param, sizeof(param)) == ESP_OK) {
+		        ESP_LOGI(TAG, "Found URL query parameter => mqtt_protocol=%s", param);
+		        if (strncmp(param, "UCP", 3) == 0)
+		        {
+                            nvs_set_u8(nvs_handle, "mqtt_protocol", 0);
+                        }
+		        else
+		        {
+                            nvs_set_u8(nvs_handle, "mqtt_protocol", 1);
+		        }
+            }
+
+            nvs_close(nvs_handle);
 		}
 		free(qbuf);
 	    }
@@ -252,8 +293,8 @@ static void httpd_register_basic_auth(httpd_handle_t server)
 {
     basic_auth_info_t *basic_auth_info = calloc(1, sizeof(basic_auth_info_t));
     if (basic_auth_info) {
-        basic_auth_info->username = CONFIG_EXAMPLE_BASIC_AUTH_USERNAME;
-        basic_auth_info->password = CONFIG_EXAMPLE_BASIC_AUTH_PASSWORD;
+        basic_auth_info->username = auth_username;
+        basic_auth_info->password = auth_password;
 
         basic_auth.user_ctx = basic_auth_info;
         httpd_register_uri_handler(server, &basic_auth);
@@ -419,9 +460,25 @@ static esp_err_t init_spiffs(void)
 void web_init(void)
 {
     static httpd_handle_t server = NULL;
+    nvs_handle_t nvs_handle;
+    size_t required_size;
 
     ESP_ERROR_CHECK(init_spiffs());
  
+    if (nvs_open_from_partition("iot_geiger", "default",NVS_READONLY, &nvs_handle) == ESP_OK)
+	{
+		required_size = 16;
+		if (nvs_get_str(nvs_handle, "auth_username", &auth_username[0], &required_size) != ESP_OK)
+		{
+			ESP_LOGE(TAG, "auth_username not in NVS");
+		}
+		required_size = 16;
+		if (nvs_get_str(nvs_handle, "auth_password", &auth_password[0], &required_size) != ESP_OK)
+		{
+			ESP_LOGE(TAG, "auth_password not in NVS");
+		}
+		nvs_close(nvs_handle);
+	}
     ESP_ERROR_CHECK(example_connect());
 
     /* Register event handlers to stop the server when Wi-Fi or Ethernet is disconnected,

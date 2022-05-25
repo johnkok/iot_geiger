@@ -46,14 +46,6 @@ body {font-family: Arial;}
 </head>
 <body>
 
-<script>
-function submitWifiMessage() {
-    window.location.href = '?ssid=' + document.getElementById('ssid').value +
-                           '&wifi_password=' + document.getElementById('wifi_password').value + 
-                           '&wifi_mode=' + document.getElementById('wifi_mode').value;
-}
-</script>
-
 <h2>Radiation monitor</h2>
 
 <div class="tab">
@@ -93,24 +85,28 @@ function submitWifiMessage() {
    <h3>MQTT broker:</h3>
    <table>
    <tr>
-      <th><label for="mqtt_url">URL: </label></th>
-      <td><input type="text" name="inputString"></td
+      <th><label for="mqtt_broker">Broker: </label></th>
+      <td><input type="text" name="mqtt_broker" id="mqtt_broker"></td>
    </tr>
    <tr>
       <th><label for="mqtt_username">Username: </label></th>
-      <td><input type="text" name="inputString"></td>
+      <td><input type="text" name="mqtt_username" id="mqtt_username"></td>
+   </tr>
+   <tr>
+      <th><label for="mqtt_port">Port: </label></th>
+      <td><input type="text" name="mqtt_port" id="mqtt_port"></td>
    </tr>
    <tr>
       <th><label for="mqtt_password">Password: </label></th>
-      <td><input type="password" name="inputString"></td>
+      <td><input type="password" name="mqtt_password"  id="mqtt_password"></td>
    </tr>
    <tr>
       <th><label for="mqtt_interval">Interval: </label></th>
-      <td><input type="text" name="inputString"></td>
+      <td><input type="text" name="mqtt_interval" id="mqtt_interval"></td>
    </tr>
    <tr>
       <th><label for="mqtt_protocol">Protocol: </label></th>
-      <td><select name="Protocol" id="mqtt_protocol">
+      <td><select name="Protocol" id="mqtt_protocol" id="mqtt_protocol">
           <option value="tcp">TCP</option>
           <option value="ccl">SSL</option>
       </select></td>
@@ -122,11 +118,11 @@ function submitWifiMessage() {
    <table>
    <tr>
       <th><label for="username">Username: </label></th>
-      <td><input type="text" name="inputString"></td>
+      <td><input type="text" name="auth_username" id="auth_username"></td>
    </tr>
    <tr>
       <th><label for="password">Password: </label></th>
-      <td><input type="password" name="inputString"></td>
+      <td><input type="password" name="auth_password" id="auth_password"></td>
    </tr>
    </table> 
    <input type="submit" value="Submit" onclick="submitAccountMessage()">
@@ -176,6 +172,27 @@ function openMenu(evt, menuName) {
   document.getElementById(menuName).style.display = "block";
   evt.currentTarget.className += " active";
 }
+
+function submitWifiMessage() {
+    window.location.href = '?ssid=' + document.getElementById('ssid').value +
+                           '&wifi_password=' + document.getElementById('wifi_password').value + 
+                           '&wifi_mode=' + document.getElementById('wifi_mode').value;
+}
+
+function submitAccountMessage() {
+    window.location.href = '?&auth_username=' + document.getElementById('auth_username').value + 
+                           '&auth_password=' + document.getElementById('auth_password').value;
+}
+
+function submitMqttMessage() {
+    window.location.href = '?&mqtt_username=' + document.getElementById('mqtt_username').value + 
+                           '&mqtt_password=' + document.getElementById('mqtt_password').value + 
+                           '&mqtt_broker=' + document.getElementById('mqtt_broker').value + 
+                           '&mqtt_interval=' + document.getElementById('mqtt_interval').value + 
+                           '&mqtt_protocol=' + document.getElementById('mqtt_protocol').value + 
+                           '&mqtt_port=' + document.getElementById('mqtt_port').value;
+}
+
 </script>
    
 </body>
