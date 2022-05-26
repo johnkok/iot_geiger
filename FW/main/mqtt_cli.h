@@ -18,5 +18,6 @@
 
 
 void mqtt_init(void);
+void mqtt_publish_data(esp_mqtt_client_handle_t client);
 
 #endif

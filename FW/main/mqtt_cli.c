@@ -10,6 +10,7 @@ char mqtt_port[16];
 char mqtt_username[16];
 char mqtt_password[16];
 char mqtt_broker[16];
+esp_mqtt_client_handle_t client = NULL;
 
 static void log_error_if_nonzero(const char *message, int error_code)
 {
@@ -31,26 +32,22 @@ static void log_error_if_nonzero(const char *message, int error_code)
 void mqtt_publish_data(esp_mqtt_client_handle_t client)
 {
 int msg_id;
-char buffer[32];
+char buffer[256];
 
 
-    sprintf(buffer, "%6.0d", rx_store.current.gc_count);
-    msg_id = esp_mqtt_client_publish(client, "/home/geiger/counter", buffer, 0, 1, 0);
-    ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
-    sprintf(buffer, "%3.2f", rx_store.current.temperature);
-    msg_id = esp_mqtt_client_publish(client, "/home/geiger/temperature", buffer, 0, 1, 0);
-    ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
-    sprintf(buffer, "%3.2f", rx_store.current.humidity);
-    msg_id = esp_mqtt_client_publish(client, "/home/geiger/humidity", buffer, 0, 1, 0);
-    ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
-    sprintf(buffer, "%6.0d", rx_store.current.pm1);
-    msg_id = esp_mqtt_client_publish(client, "/home/geiger/pm1", buffer, 0, 1, 0);
-    ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
-    sprintf(buffer, "%6.0d", rx_store.current.pm2_5);
-    msg_id = esp_mqtt_client_publish(client, "/home/geiger/pm2_5", buffer, 0, 1, 0);
-    ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
-    sprintf(buffer, "%6.0d", rx_store.current.pm10);
-    msg_id = esp_mqtt_client_publish(client, "/home/geiger/pm10", buffer, 0, 1, 0);
+    snprintf(buffer, sizeof(buffer),   "{\"counter\":\"%d\","
+					"\"temperature\":\"%3.2f\","
+					"\"humidity\":\"%3.2f\","
+					"\"pm1\":\"%d\","
+					"\"pm2_5\":\"%d\","
+					"\"pm10\":\"%d\"}",
+		    rx_store.current.gc_count,
+		    rx_store.current.temperature,
+		    rx_store.current.humidity,
+		    rx_store.current.pm1,
+		    rx_store.current.pm2_5,
+		    rx_store.current.pm10);
+    msg_id = esp_mqtt_client_publish(client, "home/geiger", buffer, 0, 1, 0);
     ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
 }
 
@@ -103,7 +100,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
 void mqtt_init(void)
 {
-	nvs_handle_t nvs_handle;
+    nvs_handle_t nvs_handle;
     size_t required_size;
 
     esp_mqtt_client_config_t mqtt_cfg = {
@@ -147,7 +144,7 @@ void mqtt_init(void)
         nvs_close(nvs_handle);
     }
 	
-    esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
+    client = esp_mqtt_client_init(&mqtt_cfg);
     /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
     esp_mqtt_client_start(client);

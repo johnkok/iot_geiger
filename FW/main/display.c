@@ -1,8 +1,10 @@
 #include "display.h"
 #include "fonts.h"
+#include "mqtt_cli.h"
 
 static const char *TAG = "DISPLAY";
 extern rx_store_s rx_store;
+extern esp_mqtt_client_handle_t client;
 
 int i2c_master_port = 0;
 i2c_config_t conf = {
@@ -117,7 +119,11 @@ static void *display_thread(void * arg)
                 sleep(5);
                 break;
             }
-        }
+	}
+        if (client != NULL)
+        {
+            mqtt_publish_data(client);
+	}
     }
     ESP_LOGE(TAG, "Thread ended!");
 
