@@ -179,8 +179,8 @@ static esp_err_t basic_auth_get_handler(httpd_req_t *req)
 		        {
                             nvs_set_u8(nvs_handle, "wifi_mode", 1);
 		        }
-            }
-			// web server
+                    }
+                    // web server
 		    if (httpd_query_key_value(qbuf, "auth_username", param, sizeof(param)) == ESP_OK) {
 		        ESP_LOGI(TAG, "Found URL query parameter => auth_username=%s", param);
                         nvs_set_str(nvs_handle, "auth_username", param);
@@ -188,8 +188,12 @@ static esp_err_t basic_auth_get_handler(httpd_req_t *req)
 		    if (httpd_query_key_value(qbuf, "auth_password", param, sizeof(param)) == ESP_OK) {
 		        ESP_LOGI(TAG, "Found URL query parameter => auth_password=%s", param);
                         nvs_set_str(nvs_handle, "auth_password", param);
-		    }
-            // MQTT
+                    }
+                    // MQTT
+                    if (httpd_query_key_value(qbuf, "mqtt_broker", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => mqtt_broker=%s", param);
+                        nvs_set_str(nvs_handle, "mqtt_broker", param);
+                    }
 		    if (httpd_query_key_value(qbuf, "mqtt_username", param, sizeof(param)) == ESP_OK) {
 		        ESP_LOGI(TAG, "Found URL query parameter => mqtt_username=%s", param);
                         nvs_set_str(nvs_handle, "mqtt_username", param);
@@ -208,7 +212,7 @@ static esp_err_t basic_auth_get_handler(httpd_req_t *req)
 		    }
 		    if (httpd_query_key_value(qbuf, "mqtt_protocol", param, sizeof(param)) == ESP_OK) {
 		        ESP_LOGI(TAG, "Found URL query parameter => mqtt_protocol=%s", param);
-		        if (strncmp(param, "UCP", 3) == 0)
+		        if (strncmp(param, "TCP", 3) == 0)
 		        {
                             nvs_set_u8(nvs_handle, "mqtt_protocol", 0);
                         }
@@ -216,9 +220,8 @@ static esp_err_t basic_auth_get_handler(httpd_req_t *req)
 		        {
                             nvs_set_u8(nvs_handle, "mqtt_protocol", 1);
 		        }
-            }
-
-            nvs_close(nvs_handle);
+                    }
+                    nvs_close(nvs_handle);
 		}
 		free(qbuf);
 	    }
