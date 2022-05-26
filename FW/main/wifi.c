@@ -62,6 +62,8 @@ void wifi_init_softap(void)
             .authmode = WIFI_AUTH_WPA_WPA2_PSK,
         },
     };
+    memset((char *)wifi_config.ap.ssid, 0x00, 32);
+    memset((char *)wifi_config.ap.password, 0x00, 32);
     strncpy((char *)wifi_config.ap.ssid, wifi_ssid, strnlen(wifi_ssid,32));
     strncpy((char *)wifi_config.ap.password, wifi_pass, strnlen(wifi_pass,32));
     wifi_config.ap.ssid_len = strnlen(wifi_ssid,32);
@@ -108,12 +110,14 @@ void wifi_init_sta(void)
              * doesn't support WPA2, these mode can be enabled by commenting below line */
 	     .threshold.authmode = WIFI_AUTH_WPA2_PSK,
 
-            .pmf_cfg = {
-                .capable = true,
-                .required = false
+             .pmf_cfg = {
+                 .capable = true,
+                 .required = false
             },
         },
     };
+    memset((char *)wifi_config.sta.ssid, 0x00, 32);
+    memset((char *)wifi_config.sta.password, 0x00, 32);
     strncpy((char *)wifi_config.sta.ssid, wifi_ssid, strnlen(wifi_ssid,32));
     strncpy((char *)wifi_config.sta.password, wifi_pass, strnlen(wifi_pass,32));
 
@@ -134,10 +138,10 @@ void wifi_init_sta(void)
     /* xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually
      * happened. */
     if (bits & WIFI_CONNECTED_BIT) {
-        ESP_LOGI(TAG, "connected to ap SSID:%s password:%s",
+        ESP_LOGI(TAG, "connected to ap SSID:%s password:%s.",
                  wifi_ssid, wifi_pass);
     } else if (bits & WIFI_FAIL_BIT) {
-        ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",
+        ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s.",
                  wifi_ssid, wifi_pass);
     } else {
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
