@@ -1,40 +1,43 @@
 #include "geiger.h"
 
+#define GC_LOG_CNT 60
+
 extern QueueHandle_t data_queue;
 
 static const char *TAG = "GEIGER";
-static unsigned short int gc_event = 0;
+static unsigned int gc_event = 0;
+float gc_hourly[GC_LOG_CNT];
+short int hourly_index = 0;
+static unsigned short int gc_event_ind = 0;
 
 void gc_int_handler(void *arg)
 {
-    data_msg_s * gc_msg;
-
-    gc_msg = malloc(sizeof(data_msg_s));
-    if (gc_msg)
-    {
-        gc_event++;
-        gc_msg->msg_src = GC_SRC;
-        gc_msg->gc_count = gc_event;
-        if (xQueueSend( data_queue, (void *) &gc_msg, (TickType_t)0) != pdTRUE)
-        {
-            free(gc_msg);
-        }
-    }
+    gc_event++;
+    gc_event_ind = 1;
 }
 
 static void *geiger_thread(void * arg)
 {
+    struct timeval tv_old, tv_new;
     unsigned char clear_event = 0;
+    data_msg_s * gc_msg;
+
+    for (int i = 0 ; i < GC_LOG_CNT ; i++)
+    {
+        gc_hourly[i] = 0.0;
+    }
+
+    gettimeofday(&tv_old, NULL);
 
     ESP_LOGI(TAG, "Thread started!");
     while (true)
     {
         usleep(10000);
-        if (gc_event)
+        if (gc_event_ind)
         {
             gpio_set_level(BUZ_GPIO,0);
             gpio_set_level(LED_GPIO,0);
-            gc_event--;
+            gc_event_ind = 0;
             clear_event = 1;
         }
         else if (clear_event != 0)
@@ -42,6 +45,24 @@ static void *geiger_thread(void * arg)
             gpio_set_level(BUZ_GPIO,1);
             gpio_set_level(LED_GPIO,1);
             clear_event = 0;
+        }
+        gettimeofday(&tv_new, NULL);
+        if (tv_new.tv_sec >= (tv_old.tv_sec + 60))
+        {
+            gc_hourly[hourly_index] = gc_event * 0.00812037f; // Convertion factor for J305 tube
+            gc_msg = malloc(sizeof(data_msg_s));
+            if (gc_msg)
+            {
+                gc_msg->msg_src = GC_SRC;
+                gc_msg->gc_usv = gc_hourly[hourly_index];
+                if (xQueueSend( data_queue, (void *) &gc_msg, (TickType_t)0) != pdTRUE)
+                {
+                    free(gc_msg);
+                }
+            }
+            tv_old = tv_new;
+            hourly_index = (hourly_index + 1) % GC_LOG_CNT;
+            gc_event = 0;
         }
     }
     ESP_LOGE(TAG, "Thread ended!");

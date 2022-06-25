@@ -83,7 +83,7 @@ static void *display_thread(void * arg)
     {
         sleep(1);
         display_print(&display_ram[0][27], 0, 0, "Current data");
-        sprintf(buffer, "GC Cnts: %6.0d", rx_store.current.gc_count);
+        sprintf(buffer, "Geiger: %2.3f usv/h", rx_store.current.gc_usv);
         display_print(&display_ram[1][4], 0, 0, buffer);
         sprintf(buffer, "Temp.:    %3.2f C", rx_store.current.temperature);
         display_print(&display_ram[2][4], 0, 0, buffer);

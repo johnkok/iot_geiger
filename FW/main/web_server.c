@@ -324,13 +324,13 @@ static esp_err_t status_get_handler(httpd_req_t *req)
 
     /* Send response with custom headers and body set as the
      * string passed in user context*/
-    snprintf(status, sizeof(status), 	"GC: %d<br>"
+    snprintf(status, sizeof(status), 	"GC: %f<br>"
     					"Temperature: %f<br>"
     					"Humidity: %f<br>"
     					"PM1: %d<br>"
     					"PM2.5: %d<br>"
-    					"PM10: %d<br>", 
-    					rx_store.current.gc_count,
+    					"PM10: %d<br>",
+    					rx_store.current.gc_usv,
     					rx_store.current.temperature,
     					rx_store.current.humidity,
     					rx_store.current.pm1,

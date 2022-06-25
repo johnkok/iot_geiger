@@ -69,7 +69,8 @@ void app_main(void)
     ESP_LOGI(TAG, "Initialization finished!");
     rx_store.current.temperature = 0.0f;
     rx_store.current.humidity = 0.0f;
-    
+    rx_store.current.gc_usv = 0.0f;
+
     // All done, idle looP
     while (true)
     {
@@ -80,7 +81,7 @@ void app_main(void)
                 switch (data_msg_rx->msg_src)
                 {
                 case (GC_SRC):
-                    rx_store.current.gc_count += data_msg_rx->gc_count;
+                    rx_store.current.gc_usv = data_msg_rx->gc_usv;
                     break;
                 case (DHT_SRC):
                     rx_store.current.temperature = data_msg_rx->dht_info.temperature;

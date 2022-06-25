@@ -43,7 +43,7 @@ typedef struct rx_data_t
     unsigned short pm10;
     float temperature;
     float humidity;
-    unsigned short gc_count;
+    float gc_usv;
 }rx_data_s;
 
 typedef struct rx_store_t
@@ -57,7 +57,7 @@ typedef struct data_msg_t
 {
     msg_src_e msg_src;
     union {
-        unsigned short gc_count;
+        float gc_usv;
         pm_info_s pm_info;
         dht_info_s dht_info;
     };

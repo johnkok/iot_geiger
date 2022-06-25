@@ -35,13 +35,13 @@ int msg_id;
 char buffer[256];
 
 
-    snprintf(buffer, sizeof(buffer),   "{\"counter\":\"%d\","
+    snprintf(buffer, sizeof(buffer),   "{\"counter\":\"%f\","
 					"\"temperature\":\"%3.2f\","
 					"\"humidity\":\"%3.2f\","
 					"\"pm1\":\"%d\","
 					"\"pm2_5\":\"%d\","
 					"\"pm10\":\"%d\"}",
-		    rx_store.current.gc_count,
+		    rx_store.current.gc_usv,
 		    rx_store.current.temperature,
 		    rx_store.current.humidity,
 		    rx_store.current.pm1,
