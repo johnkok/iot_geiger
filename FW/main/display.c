@@ -1,10 +1,13 @@
 #include "display.h"
 #include "fonts.h"
 #include "mqtt_cli.h"
+#include "geiger.h"
 
 static const char *TAG = "DISPLAY";
 extern rx_store_s rx_store;
 extern esp_mqtt_client_handle_t client;
+extern float gc_hourly[GC_LOG_CNT];
+static unsigned char display = 0;
 
 int i2c_master_port = 0;
 i2c_config_t conf = {
@@ -77,27 +80,61 @@ static void *display_thread(void * arg)
     char buffer[64];
     int erase_delay;
     nvs_handle_t nvs_handle;
+    unsigned char page = 0;
 
     ESP_LOGI(TAG, "Thread started!");
     while (true)
     {
         sleep(1);
-        display_print(&display_ram[0][27], 0, 0, "Current data");
-        sprintf(buffer, "Geiger: %2.3f usv/h", rx_store.current.gc_usv);
-        display_print(&display_ram[1][4], 0, 0, buffer);
-        sprintf(buffer, "Temp.:    %3.2f C", rx_store.current.temperature);
-        display_print(&display_ram[2][4], 0, 0, buffer);
-        sprintf(buffer, "Humidity: %3.2f %%", rx_store.current.humidity);
-        display_print(&display_ram[3][4], 0, 0, buffer);
-        sprintf(buffer, "PM1:   %6.0d ug/m3", rx_store.current.pm1);
-        display_print(&display_ram[4][4], 0, 0, buffer);
-        sprintf(buffer, "PM2.5: %6.0d ug/m3", rx_store.current.pm2_5);
-        display_print(&display_ram[5][4], 0, 0, buffer);
-        sprintf(buffer, "PM10:  %6.0d ug/m3", rx_store.current.pm10);
-        display_print(&display_ram[6][4], 0, 0, buffer);        
-        display_print(&display_ram[7][30], 0, 0, "www.ioko.eu");
-        display_update(&display_ram[0][0]);
+        if (page & 0x08)
+        {
+            display_print(&display_ram[0][27], 0, 0, "Current data");
+            sprintf(buffer, "Geiger: %2.3f usv/h", rx_store.current.gc_usv);
+            display_print(&display_ram[1][4], 0, 0, buffer);
+            sprintf(buffer, "Temp.:    %3.2f C", rx_store.current.temperature);
+            display_print(&display_ram[2][4], 0, 0, buffer);
+            sprintf(buffer, "Humidity: %3.2f %%", rx_store.current.humidity);
+            display_print(&display_ram[3][4], 0, 0, buffer);
+            sprintf(buffer, "PM1:   %6.0d ug/m3", rx_store.current.pm1);
+            display_print(&display_ram[4][4], 0, 0, buffer);
+            sprintf(buffer, "PM2.5: %6.0d ug/m3", rx_store.current.pm2_5);
+            display_print(&display_ram[5][4], 0, 0, buffer);
+            sprintf(buffer, "PM10:  %6.0d ug/m3", rx_store.current.pm10);
+            display_print(&display_ram[6][4], 0, 0, buffer);        
+            display_print(&display_ram[7][30], 0, 0, "www.ioko.eu");
+            display_update(&display_ram[0][0]);
+        }
+        else
+        {
+            display_clear();
+            for (int i = 0; i < GC_LOG_CNT ; i++)
+            {   
+                float meas = 0.0;
+                if (gc_hourly[i] > 55.0) meas = 55;
+		else meas = gc_hourly[i];
+                for (int y = 1 ; y < 8 ; y++)
+                {
+                    if (meas > (y * 8.0)) display_ram[y-1][i] = 0xFF;
+                    else if (meas > ((y * 8.0) - 1.0)) display_ram[y-1][i] = 0x7F;
+		    else if (meas > ((y * 8.0) - 2.0)) display_ram[y-1][i] = 0x3F;
+		    else if (meas > ((y * 8.0) - 3.0)) display_ram[y-1][i] = 0x1F;
+		    else if (meas > ((y * 8.0) - 4.0)) display_ram[y-1][i] = 0x0F;
+		    else if (meas > ((y * 8.0) - 5.0)) display_ram[y-1][i] = 0x07;
+		    else if (meas > ((y * 8.0) - 6.0)) display_ram[y-1][i] = 0x03;
+		    else if (meas > ((y * 8.0) - 7.0)) display_ram[y-1][i] = 0x01;
+                    else display_ram[y-1][i] = 0;
+		}
 
+                display_ram[6][i] = display_ram[6][i] | 0x01;
+            } 
+            for (int i = 0; i < 7 ; i++)
+            {
+                display_ram[i][0] = 0xFF;
+            }
+	    display_print(&display_ram[7][42], 0, 0, "usv/h");
+
+            display_update(&display_ram[0][0]);
+        }
         // Check for factory reset
         erase_delay = 0;
         while (gpio_get_level(BUTTON_GPIO) == 0)
@@ -124,6 +161,7 @@ static void *display_thread(void * arg)
         {
             mqtt_publish_data(client);
 	}
+	page++;
     }
     ESP_LOGE(TAG, "Thread ended!");
 
@@ -137,6 +175,7 @@ void display_init(void)
 
     uint8_t buffer[2];
     int ret;
+    nvs_handle_t nvs_handle;
 
     memset(display_ram, 0, sizeof(display_ram));
 
@@ -161,6 +200,14 @@ void display_init(void)
     {
         buffer[1] = init_cmds[i];
         i2c_master_write_slave(0, buffer, 2);
+    }
+
+    if (nvs_open_from_partition("iot_geiger", "default", NVS_READONLY, &nvs_handle) == ESP_OK)
+    {
+        if (nvs_get_u8(nvs_handle, "display", &display) != ESP_OK)
+        {
+            ESP_LOGE(TAG, "display not in NVS");
+        }
     }
 
     display_print(&display_ram[0][30], 0, 0, "www.ioko.eu");

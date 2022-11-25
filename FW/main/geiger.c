@@ -1,7 +1,5 @@
 #include "geiger.h"
 
-#define GC_LOG_CNT 60
-
 extern QueueHandle_t data_queue;
 
 static const char *TAG = "GEIGER";
@@ -9,6 +7,8 @@ static unsigned int gc_event = 0;
 float gc_hourly[GC_LOG_CNT];
 short int hourly_index = 0;
 static unsigned short int gc_event_ind = 0;
+static unsigned char buzzer = 0;
+static unsigned char led = 0;
 
 void gc_int_handler(void *arg)
 {
@@ -35,15 +35,15 @@ static void *geiger_thread(void * arg)
         usleep(10000);
         if (gc_event_ind)
         {
-            gpio_set_level(BUZ_GPIO,0);
-            gpio_set_level(LED_GPIO,0);
+            if (buzzer > 0) gpio_set_level(BUZ_GPIO,0);
+            if (led > 0) gpio_set_level(LED_GPIO,0);
             gc_event_ind = 0;
             clear_event = 1;
         }
         else if (clear_event != 0)
         {
-            gpio_set_level(BUZ_GPIO,1);
-            gpio_set_level(LED_GPIO,1);
+            if (buzzer > 0) gpio_set_level(BUZ_GPIO,1);
+            if (led > 0) gpio_set_level(LED_GPIO,1);
             clear_event = 0;
         }
         gettimeofday(&tv_new, NULL);
@@ -75,6 +75,7 @@ void geiger_init(void)
     pthread_attr_t attr;
     pthread_t threadGeiger;
     int ret;
+    nvs_handle_t nvs_handle;
 
     // Confidure BUZZER GPIO
     gpio_config_t io_conf = {};
@@ -98,6 +99,24 @@ void geiger_init(void)
 
     gpio_install_isr_service(0);
     gpio_isr_handler_add(GC_GPIO, gc_int_handler, NULL);
+
+    if (nvs_open_from_partition("iot_geiger", "default", NVS_READONLY, &nvs_handle) == ESP_OK)
+    {
+        if (nvs_get_u8(nvs_handle, "buzzer", &buzzer) != ESP_OK)
+        {
+            ESP_LOGE(TAG, "buzzer not in NVS");
+        }
+        if (nvs_get_u8(nvs_handle, "led", &led) != ESP_OK)
+        {
+            ESP_LOGE(TAG, "led not in NVS");
+        }
+    }
+
+    // Clean log memory
+    for (int i = 0 ; i < GC_LOG_CNT; i++)
+    {
+        gc_hourly[i] = 0.0;
+    } 
 
     // Start Geiger counter thread
     ret = pthread_attr_init(&attr);

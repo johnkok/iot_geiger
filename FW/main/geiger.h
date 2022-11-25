@@ -8,6 +8,8 @@
 #define GC_GPIO 13
 #define BUZ_GPIO 12
 
+#define GC_LOG_CNT 120
+
 void geiger_init(void);
 
 #endif

@@ -131,19 +131,19 @@ body {font-family: Arial;}
    <table>
    <tr>
       <th><label for="led">LED: </label></th>
-      <td><input type="checkbox" id="led" name="led" value="1"></td>
+      <td><input type="checkbox" id="led" name="led"></td>
    </tr>
    <tr>
       <th><label for="buzzer">Buzzer: </label></th>
-      <td><input type="checkbox" id="buzzer" name="buzzer" value="1"></td>
+      <td><input type="checkbox" id="buzzer" name="buzzer"></td>
    </tr>
    <tr>
       <th><label for="alarm">Alarm: </label></th>
-      <td><input type="checkbox" id="alarm" name="alarm" value="1"></td>
+      <td><input type="checkbox" id="alarm" name="alarm"></td>
    </tr>
    <tr>
-      <th><label for="alarm">Display: </label></th>
-      <td><input type="checkbox" id="display" name="display" value="1"></td>
+      <th><label for="display">Display: </label></th>
+      <td><input type="checkbox" id="display" name="display"></td>
    </tr>
    </table> 
    <input type="submit" value="Submit" onclick="submitOptionsMessage()">
@@ -180,17 +180,24 @@ function submitWifiMessage() {
 }
 
 function submitAccountMessage() {
-    window.location.href = '?&auth_username=' + document.getElementById('auth_username').value + 
+    window.location.href = '?auth_username=' + document.getElementById('auth_username').value + 
                            '&auth_password=' + document.getElementById('auth_password').value;
 }
 
 function submitMqttMessage() {
-    window.location.href = '?&mqtt_username=' + document.getElementById('mqtt_username').value + 
+    window.location.href = '?mqtt_username=' + document.getElementById('mqtt_username').value + 
                            '&mqtt_password=' + document.getElementById('mqtt_password').value + 
                            '&mqtt_broker=' + document.getElementById('mqtt_broker').value + 
                            '&mqtt_interval=' + document.getElementById('mqtt_interval').value + 
                            '&mqtt_protocol=' + document.getElementById('mqtt_protocol').value + 
                            '&mqtt_port=' + document.getElementById('mqtt_port').value;
+}
+
+function submitOptionsMessage(){
+    window.location.href = '?buzzer=' + document.getElementById('buzzer').checked +
+                           '&alarm=' + document.getElementById('alarm').checked +
+                           '&led=' + document.getElementById('led').checked +
+                           '&display=' + document.getElementById('display').checked;
 }
 
 </script>

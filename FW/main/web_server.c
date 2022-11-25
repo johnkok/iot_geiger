@@ -150,43 +150,43 @@ static esp_err_t basic_auth_get_handler(httpd_req_t *req)
             httpd_resp_set_type(req, "application/json");
             httpd_resp_set_hdr(req, "Connection", "keep-alive");
 
-	    /* Read URL query string length and allocate memory for length + 1,
-	     * extra byte for null termination */
-	    buf_len = httpd_req_get_url_query_len(req) + 1;
-	    if (buf_len > 1) {
-		qbuf = malloc(buf_len);
-		if (httpd_req_get_url_query_str(req, qbuf, buf_len) == ESP_OK) {
-		    ESP_LOGI(TAG, "Found URL query => %s", qbuf);
+            /* Read URL query string length and allocate memory for length + 1,
+             * extra byte for null termination */
+            buf_len = httpd_req_get_url_query_len(req) + 1;
+            if (buf_len > 1) {
+                qbuf = malloc(buf_len);
+                if (httpd_req_get_url_query_str(req, qbuf, buf_len) == ESP_OK) {
+                    ESP_LOGI(TAG, "Found URL query => %s", qbuf);
                     nvs_open_from_partition("iot_geiger", "default", NVS_READWRITE, &nvs_handle);
-		    char param[32];
-		    /* Get value of expected key from query string */
-		    // WiFi
-			if (httpd_query_key_value(qbuf, "ssid", param, sizeof(param)) == ESP_OK) {
-		        ESP_LOGI(TAG, "Found URL query parameter => ssid=%s", param);
+                    char param[64];
+                    /* Get value of expected key from query string */
+                    // WiFi
+                    if (httpd_query_key_value(qbuf, "ssid", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => ssid=%s", param);
                         nvs_set_str(nvs_handle, "wifi_ssid", param);
-		    }
-		    if (httpd_query_key_value(qbuf, "wifi_password", param, sizeof(param)) == ESP_OK) {
-		        ESP_LOGI(TAG, "Found URL query parameter => wifi_password=%s", param);
+                    }
+                    if (httpd_query_key_value(qbuf, "wifi_password", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => wifi_password=%s", param);
                         nvs_set_str(nvs_handle, "wifi_pass", param);
-		    }
-		    if (httpd_query_key_value(qbuf, "wifi_mode", param, sizeof(param)) == ESP_OK) {
-		        ESP_LOGI(TAG, "Found URL query parameter => wifi_mode=%s", param);
-		        if (strncmp(param, "AP", 2) == 0)
-		        {
+                    }
+                    if (httpd_query_key_value(qbuf, "wifi_mode", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => wifi_mode=%s", param);
+                        if (strncmp(param, "AP", 2) == 0)
+                        {
                             nvs_set_u8(nvs_handle, "wifi_mode", 0);
                         }
-		        else
-		        {
+                        else
+                        {
                             nvs_set_u8(nvs_handle, "wifi_mode", 1);
-		        }
+                        }
                     }
                     // web server
-		    if (httpd_query_key_value(qbuf, "auth_username", param, sizeof(param)) == ESP_OK) {
-		        ESP_LOGI(TAG, "Found URL query parameter => auth_username=%s", param);
+                    if (httpd_query_key_value(qbuf, "auth_username", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => auth_username=%s", param);
                         nvs_set_str(nvs_handle, "auth_username", param);
-		    }
-		    if (httpd_query_key_value(qbuf, "auth_password", param, sizeof(param)) == ESP_OK) {
-		        ESP_LOGI(TAG, "Found URL query parameter => auth_password=%s", param);
+                    }
+                    if (httpd_query_key_value(qbuf, "auth_password", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => auth_password=%s", param);
                         nvs_set_str(nvs_handle, "auth_password", param);
                     }
                     // MQTT
@@ -194,83 +194,128 @@ static esp_err_t basic_auth_get_handler(httpd_req_t *req)
                         ESP_LOGI(TAG, "Found URL query parameter => mqtt_broker=%s", param);
                         nvs_set_str(nvs_handle, "mqtt_broker", param);
                     }
-		    if (httpd_query_key_value(qbuf, "mqtt_username", param, sizeof(param)) == ESP_OK) {
-		        ESP_LOGI(TAG, "Found URL query parameter => mqtt_username=%s", param);
+                    if (httpd_query_key_value(qbuf, "mqtt_username", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => mqtt_username=%s", param);
                         nvs_set_str(nvs_handle, "mqtt_username", param);
-		    }
-		    if (httpd_query_key_value(qbuf, "mqtt_port", param, sizeof(param)) == ESP_OK) {
-		        ESP_LOGI(TAG, "Found URL query parameter => mqtt_port=%s", param);
+                    }
+                    if (httpd_query_key_value(qbuf, "mqtt_port", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => mqtt_port=%s", param);
                         nvs_set_str(nvs_handle, "mqtt_port", param);
-		    }
-		    if (httpd_query_key_value(qbuf, "mqtt_password", param, sizeof(param)) == ESP_OK) {
-		        ESP_LOGI(TAG, "Found URL query parameter => mqtt_password=%s", param);
+                    }
+                    if (httpd_query_key_value(qbuf, "mqtt_password", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => mqtt_password=%s", param);
                         nvs_set_str(nvs_handle, "mqtt_password", param);
-		    }
-		    if (httpd_query_key_value(qbuf, "mqtt_interval", param, sizeof(param)) == ESP_OK) {
-		        ESP_LOGI(TAG, "Found URL query parameter => mqtt_interval=%s", param);
+                    }
+                    if (httpd_query_key_value(qbuf, "mqtt_interval", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => mqtt_interval=%s", param);
                         nvs_set_str(nvs_handle, "mqtt_interval", param);
-		    }
-		    if (httpd_query_key_value(qbuf, "mqtt_protocol", param, sizeof(param)) == ESP_OK) {
-		        ESP_LOGI(TAG, "Found URL query parameter => mqtt_protocol=%s", param);
-		        if (strncmp(param, "TCP", 3) == 0)
-		        {
+                    }
+                    if (httpd_query_key_value(qbuf, "mqtt_protocol", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => mqtt_protocol=%s", param);
+                        if (strncmp(param, "TCP", 3) == 0)
+                        {
                             nvs_set_u8(nvs_handle, "mqtt_protocol", 0);
                         }
-		        else
-		        {
+                        else
+                        {
                             nvs_set_u8(nvs_handle, "mqtt_protocol", 1);
-		        }
+                        }
+                    }
+                    // Options
+                    if (httpd_query_key_value(qbuf, "led", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => led=%s", param);
+                        if (strncmp(param, "true", 4) == 0)
+                        {
+                            nvs_set_u8(nvs_handle, "led", 1);
+                        }
+                        else
+                        {
+                            nvs_set_u8(nvs_handle, "led", 0);
+                        }
+                    }
+                    if (httpd_query_key_value(qbuf, "buzzer", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => buzzer=%s", param);
+                        if (strncmp(param, "true", 4) == 0)
+                        {
+                            nvs_set_u8(nvs_handle, "buzzer", 1);
+                        }
+                        else
+                        {
+                            nvs_set_u8(nvs_handle, "buzzer", 0);
+                        }
+                    }
+                    if (httpd_query_key_value(qbuf, "alarm", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => alarm=%s", param);
+                        if (strncmp(param, "true", 4) == 0)
+                        {
+                            nvs_set_u8(nvs_handle, "alarm", 1);
+                        }
+                        else
+                        {
+                            nvs_set_u8(nvs_handle, "alarm", 0);
+                        }
+                    }
+                    if (httpd_query_key_value(qbuf, "display", param, sizeof(param)) == ESP_OK) {
+                        ESP_LOGI(TAG, "Found URL query parameter => display=%s", param);
+                        if (strncmp(param, "true", 4) == 0)
+                        {
+                            nvs_set_u8(nvs_handle, "display", 1);
+                        }
+                        else
+                        {
+                            nvs_set_u8(nvs_handle, "display", 0);
+                        }
                     }
                     nvs_close(nvs_handle);
-		}
-		free(qbuf);
-	    }
+                }
+            free(qbuf);
+        }
 
-	    fd = fopen("/spiffs/index.html", "r");
-	    if (!fd) {
-		/* Respond with 500 Internal Server Error */
-		httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read existing file");
-		return ESP_FAIL;
-	    }
+        fd = fopen("/spiffs/index.html", "r");
+        if (!fd) {
+             /* Respond with 500 Internal Server Error */
+             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read existing file");
+             return ESP_FAIL;
+        }
 
-	    set_content_type_from_file(req, "/spiffs/index.html");
+        set_content_type_from_file(req, "/spiffs/index.html");
 
-	    /* Retrieve the pointer to scratch buffer for temporary storage */
-	    char *chunk = malloc(SCRATCH_BUFSIZE);
-            if (!chunk) {
-                ESP_LOGE(TAG, "No enough memory for index response");
-                free(auth_credentials);
-                free(buf);
-                return ESP_ERR_NO_MEM;
+        /* Retrieve the pointer to scratch buffer for temporary storage */
+        char *chunk = malloc(SCRATCH_BUFSIZE);
+        if (!chunk) {
+            ESP_LOGE(TAG, "No enough memory for index response");
+            free(auth_credentials);
+            free(buf);
+            return ESP_ERR_NO_MEM;
+        }
+
+        size_t chunksize;
+        do {
+            /* Read file in chunks into the scratch buffer */
+            chunksize = fread(chunk, 1, SCRATCH_BUFSIZE, fd);
+
+            if (chunksize > 0) {
+                /* Send the buffer contents as HTTP response chunk */
+                if (httpd_resp_send_chunk(req, chunk, chunksize) != ESP_OK) {
+                    fclose(fd);
+                    ESP_LOGE(TAG, "File sending failed!");
+                    /* Abort sending file */
+                    httpd_resp_sendstr_chunk(req, NULL);
+                    /* Respond with 500 Internal Server Error */
+                    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
+                    free(auth_credentials);
+                    free(buf);
+                    fclose(fd);
+                    return ESP_FAIL;
+                }
             }
 
-	    size_t chunksize;
-	    do {
-		/* Read file in chunks into the scratch buffer */
-		chunksize = fread(chunk, 1, SCRATCH_BUFSIZE, fd);
+        /* Keep looping till the whole file is sent */
+        } while (chunksize != 0);
 
-		if (chunksize > 0) {
-		    /* Send the buffer contents as HTTP response chunk */
-		    if (httpd_resp_send_chunk(req, chunk, chunksize) != ESP_OK) {
-		        fclose(fd);
-		        ESP_LOGE(TAG, "File sending failed!");
-		        /* Abort sending file */
-		        httpd_resp_sendstr_chunk(req, NULL);
-		        /* Respond with 500 Internal Server Error */
-		        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
-                        free(auth_credentials);
-	                free(buf);
-	                fclose(fd);
-                        return ESP_FAIL;
-		   }
-		}
-
-		/* Keep looping till the whole file is sent */
-	    } while (chunksize != 0);
-
-            free(chunk);
-            fclose(fd);
-        }
+        free(chunk);
+        fclose(fd);
+    }
         free(auth_credentials);
         free(buf);
     } else {
