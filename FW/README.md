@@ -13,7 +13,5 @@ __HTTP server:__ running on port 80 and used for configuring basic parameters li
 __WiFi connectivity:__ by default the board is running configured as Access Point. Using the embedded web page, the default configuration can be changed to Station – using the preferred access point/password settings.  
 __MQTT publisher:__ for publishing the data to configured MQTT broker.  
 
-Following the schematic design used for the project:  
-![Schematic diagram](../Doc/Schmatic.png)
-
-
+Following the schematic design used for this project:  
+![Schematic diagram](/Doc/Schematic.png)
